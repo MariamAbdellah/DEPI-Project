@@ -15,9 +15,9 @@ from transformers import pipeline
 
 from langchain_openai import ChatOpenAI
 
-from config import HF_TOKEN, MODEL,BASE_URL
+from config import HF_T, MODEL,BASE_URL
 
 llm_model = ChatOpenAI(model=MODEL
-                 , api_key=HF_TOKEN
+                 , api_key=HF_T
                  ,base_url=BASE_URL
                  ,temperature=0.2)
