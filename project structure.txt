@@ -1,0 +1,32 @@
+hr_assistant/
+│
+├── app/
+│   ├── main.py              # FastAPI app
+│   ├── routes/
+│   │   ├── chat.py
+│   │   ├── cv.py
+│   │   ├── jobs.py
+│   │   └── interview.py
+│
+├── agents/
+│   ├── agent.py            # LangChain agent setup
+│
+├── tools/
+│   ├── parser.py
+│   ├── evaluator.py
+│   ├── recommender.py
+│   └── interview.py
+│
+├── models/
+│   ├── llm.py              # HuggingFace model loader
+│
+├── vectorstore/
+│   ├── faiss_index/
+│   └── jobs_data.json
+│
+├── schemas/
+│   ├── cv_schema.py
+│   └── response_schema.py
+│
+└── utils/
+    └── preprocessing.py
