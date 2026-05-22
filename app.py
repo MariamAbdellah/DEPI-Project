@@ -1,40 +1,82 @@
-# POST /chat              # main chatbot interaction
-# POST /upload-cv         # upload & parse CV
-# GET  /jobs              # get recommendations
-# POST /interview         # start interview session
+from fastapi import FastAPI, UploadFile, File, Form
+from pydantic import BaseModel
+from typing import Optional
+from chat import chat_system
+from db import create_tables
+from utils.pdf_reader import extract_text_from_pdf
+import tempfile, os, shutil, uuid
 
-from fastapi import FastAPI
-from chat import chat_system, sum_msgs
-
-
-fastAPI_APP = FastAPI()
-
-#  uvicorn app:fastAPI_APP --reload --port 8005
-from pydantic import BaseModel, Field
-
-# class ChatRequest(BaseModel):
-#     user_question: str = Field(..., example="مرحبا")
-#     user_id: str = Field(..., example="fb1358d6-e72e-407e-ba4d-a88310c4c084")
+app = FastAPI()
 
 
-
-@fastAPI_APP.post("/chat")
-def chat():
-    response = 0
-    return {"response": response}
-
-@fastAPI_APP.post("/upload_cv")
-def upload_cv():
-    response = 0
-    return {"response": response}
-
-@fastAPI_APP.get("/find_jobs")
-def find_jobs():
-    response = 0
-    return {"response": response}
+@app.on_event("startup")
+async def startup():
+    create_tables()
+    print("✅ Database table ready.")
 
 
-@fastAPI_APP.post("/interview")
-def interview():
-    response = 0
-    return {"response": response}
+session_contexts: dict[str, dict] = {}
+
+
+class ChatRequest(BaseModel):
+    user_id: str
+    message: str
+
+class ChatResponse(BaseModel):
+    user_id: str
+    reply: str
+
+
+@app.post("/session/new")
+async def new_session():
+    """Generate a new user_id to use in all other endpoints."""
+    return {"user_id": str(uuid.uuid4())}
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    context = session_contexts.get(request.user_id, {})
+    reply = chat_system(
+        user_question=request.message,
+        user_id=request.user_id,
+        context=context
+    )
+    return {
+        "user_id": request.user_id,
+        "reply": reply,
+    }
+
+
+@app.post("/upload-cv")
+async def upload_cv(
+    user_id: str = Form(...),
+    target_role: Optional[str] = Form(None),
+    file: UploadFile = File(...)
+):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = tmp.name
+
+    try:
+        cv_text = extract_text_from_pdf(tmp_path)
+    finally:
+        os.unlink(tmp_path)
+
+    session_contexts[user_id] = {
+        "cv_text": cv_text,
+        "role": target_role or "",
+    }
+
+    return {
+        "status": "CV uploaded successfully",
+        "user_id": user_id,
+        "message": "You can now chat. Try: 'evaluate my cv', 'give me interview questions', or 'recommend jobs'."
+    }
+
+
+# @app.get("/history/{user_id}")
+# async def get_history(user_id: str):
+#     return {
+#         "user_id": user_id,
+#         "message_count": count_user_messages(user_id)
+#     }
