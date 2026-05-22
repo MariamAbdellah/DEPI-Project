@@ -17,8 +17,9 @@ Recommendations:"""
 job_chain = job_prompt | llm_model
 
 def run_job_agent(skills: str, experience: str, education: str) -> str:
-    return job_chain.invoke({
+    result = job_chain.invoke({
         "skills": skills,
         "experience": experience,
         "education": education
     })
+    return result.content if hasattr(result, "content") else str(result)

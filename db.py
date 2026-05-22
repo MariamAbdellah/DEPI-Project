@@ -2,8 +2,11 @@ import psycopg
 from langchain_postgres import PostgresChatMessageHistory
 from config import CONN_STR
 import uuid
+import json
+from datetime import datetime, timezone
 
-connect_database = psycopg.connect(CONN_STR)
+# Add autocommit=True so every write is immediately saved
+connect_database = psycopg.connect(CONN_STR, autocommit=True)
 table_name = "chat_history"
 
 
@@ -13,12 +16,10 @@ def create_tables(table_name="chat_history"):
 
 
 def _safe_uuid(user_id: str) -> str:
-    """Convert any string to a valid UUID so Postgres never rejects it."""
     try:
-        uuid.UUID(user_id)   # already a valid UUID, use as-is
+        uuid.UUID(user_id)
         return user_id
     except ValueError:
-        # deterministic: same input always gives same UUID
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, user_id))
 
 
@@ -31,13 +32,35 @@ def get_history_from_postgres(user_id):
     return history
 
 
-def count_user_messages(user_id):
+
+def save_message(user_id: str, role: str, content: str):
+    # """Manually save a single message to the database."""
     query = f"""
-    SELECT COUNT(*) 
-    FROM {table_name}
-    WHERE session_id = %s;
+    INSERT INTO {table_name} (session_id, message)
+    VALUES (%s, %s);
     """
+
+    
+    message = json.dumps({
+        "type": role,  # "human" or "ai"
+        "content": content,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    })
+    
+    with connect_database.cursor() as cur:
+        cur.execute(query, (_safe_uuid(user_id), message))
+    connect_database.commit()
+
+
+def get_messages(user_id: str) -> list[dict]:
+    # """Retrieve all messages for a user."""
+    query = f"""
+    SELECT message FROM {table_name}
+    WHERE session_id = %s
+    ORDER BY id ASC;
+    """
+    import json
     with connect_database.cursor() as cur:
         cur.execute(query, (_safe_uuid(user_id),))
-        count = cur.fetchone()[0]
-    return int(count / 2)
+        rows = cur.fetchall()
+    return [json.loads(row[0]) for row in rows]

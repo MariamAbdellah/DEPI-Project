@@ -13,4 +13,5 @@ Questions:"""
 question_chain = question_prompt | llm_model
 
 def run_question_agent(role: str, skills: str) -> str:
-    return question_chain.invoke({"role": role, "skills": skills})
+    result = question_chain.invoke({"role": role, "skills": skills})
+    return result.content if hasattr(result, "content") else str(result)

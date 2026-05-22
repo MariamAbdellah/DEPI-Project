@@ -8,6 +8,7 @@ import tempfile, os, shutil, uuid
 
 app = FastAPI()
 
+# python -m uvicorn app:app --reload --port 8005 
 
 @app.on_event("startup")
 async def startup():

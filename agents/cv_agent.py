@@ -20,4 +20,5 @@ cv_chain = cv_prompt | llm_model
 def run_cv_agent(cv_text: str) -> str:
     result = cv_chain.invoke({"cv_text": cv_text})
     # result is an AIMessage object, extract the text
+    result = cv_chain.invoke({"cv_text": cv_text})
     return result.content if hasattr(result, "content") else str(result)
