@@ -168,7 +168,7 @@ llm_model = ChatOpenAI(
 
 chat_chain = full_prompt | llm_model
 
-# ── In-memory store (your class code) ─────────────────────────────────────
+# ── In-memory store  ─────────────────────────────────────
 _STORE: Dict[str, Dict] = {}
 
 def _ensure_session(session_id: str):
@@ -204,7 +204,7 @@ def _clean_response(text: str) -> str:
 def chat_system(user_question: str, user_id: str, context: dict = None) -> str:
     user_question = (user_question or "").strip()
     if not user_question:
-        return "اكتب رسالة أولاً."
+        return "write a massage first"
 
     intent = route(user_question)
     context = context or {}
@@ -230,14 +230,14 @@ def chat_system(user_question: str, user_id: str, context: dict = None) -> str:
         reply = f"Based on your profile, here are my job recommendations:\n\n{agent_response}"
 
     else:
-        # ── General chat with in-memory history (your class code) ──────────
+        # ── General chat with in-memory history ──────────
         msg = chat_with_memory.invoke(
             {"user_question": user_question},
             config={"configurable": {"session_id": user_id}}
         )
         reply = msg.content
 
-    # ── Save to in-memory raw_history (your class code) ────────────────────
+    # ── Save to in-memory raw_history ────────────────────
     sess["raw_history"].append({"role": "human", "content": user_question})
     sess["raw_history"].append({"role": "ai", "content": reply})
 
